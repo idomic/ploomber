@@ -189,12 +189,10 @@ class DAGSpec(MutableMapping):
                 raise ValueError('parent_path must be None when '
                                  f'initializing {type(self).__name__} with '
                                  'a path to a YAML spec')
-            self._path = data
             # resolve the parent path to make sources and products unambiguous
             # even if the current working directory changes
-            path_to_entry_point = Path(data).resolve()
-
-            self._parent_path = str(path_to_entry_point.parent)
+            self._path = Path(data).resolve()
+            self._parent_path = str(self._path.parent)
 
             content = Path(data).read_text()
 
@@ -231,7 +229,7 @@ class DAGSpec(MutableMapping):
                 Path(parent_path).resolve()))
 
         # try to look env.yaml in default locations
-        env_default_path = default.path_to_env(self._parent_path)
+        env_default_path = default.path_to_env(path_to_spec=self._path)
 
         self.data = data
 
