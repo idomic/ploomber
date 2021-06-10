@@ -1344,9 +1344,9 @@ upstream = ['upstream-*']
 
     dag = spec.to_dag().render()
 
-    assert str(dag['upstream-0'].product) == str(
+    assert str(Path(dag['upstream-0'].product).resolve()) == str(
         Path('upstream-0.ipynb').resolve())
-    assert str(dag['upstream-1'].product) == str(
+    assert str(Path(dag['upstream-1'].product).resolve()) == str(
         Path('upstream-1.ipynb').resolve())
 
 
