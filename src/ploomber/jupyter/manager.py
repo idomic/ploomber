@@ -1,7 +1,6 @@
 """
 Module for the jupyter extension
 """
-from math import e
 import sys
 import datetime
 import os
