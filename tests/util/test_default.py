@@ -124,6 +124,25 @@ def test_path_to_env_none(tmp_directory, arg):
     assert default.path_to_env(arg) is None
 
 
+def test_path_to_env_error_if_no_extension():
+    with pytest.raises(ValueError) as excinfo:
+        default.path_to_env('pipeline')
+
+    expected = "Expected path to spec to have an extension but got: 'pipeline'"
+    assert str(excinfo.value) == expected
+
+
+def test_path_to_env_error_if_dir(tmp_directory):
+    Path('pipeline.yaml').mkdir()
+
+    with pytest.raises(ValueError) as excinfo:
+        default.path_to_env('pipeline.yaml')
+
+    expected = ("Expected path to spec 'pipeline.yaml' to be a file "
+                "but got a directory instead")
+    assert str(excinfo.value) == expected
+
+
 @pytest.mark.parametrize(
     'to_create, to_move',
     [

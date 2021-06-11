@@ -142,8 +142,22 @@ def path_to_env(path_to_spec):
     Parameters
     ----------
     path_to_spec : str or pathlib.Path
-        Entry point parent folder
+        Path to YAML spec
+
+    Raises
+    ------
+    ValueError
+        If path_to_spec does not have an extension or if it's a directory
     """
+    if path_to_spec is not None and Path(path_to_spec).is_dir():
+        raise ValueError(
+            f'Expected path to spec {str(path_to_spec)!r} to be a '
+            'file but got a directory instead')
+
+    if path_to_spec is not None and not Path(path_to_spec).suffix:
+        raise ValueError('Expected path to spec to have an extension '
+                         f'but got: {str(path_to_spec)!r}')
+
     path_to_parent = None if path_to_spec is None else Path(
         path_to_spec).parent
     name = None if path_to_parent is None else _extract_name(path_to_spec)
