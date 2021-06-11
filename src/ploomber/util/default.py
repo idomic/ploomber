@@ -163,18 +163,21 @@ def path_to_env(path_to_spec):
     name = None if path_to_parent is None else extract_name(path_to_spec)
 
     if name is None:
-        return _path_to_env_with_name(name=None, path_to_parent=path_to_parent)
+        return path_to_env_with_name(name=None, path_to_parent=path_to_parent)
     else:
-        path = _path_to_env_with_name(name=name, path_to_parent=path_to_parent)
+        path = path_to_env_with_name(name=name, path_to_parent=path_to_parent)
 
         if path is None:
-            return _path_to_env_with_name(name=None,
-                                          path_to_parent=path_to_parent)
+            return path_to_env_with_name(name=None,
+                                         path_to_parent=path_to_parent)
         else:
             return path
 
 
-def _path_to_env_with_name(name, path_to_parent):
+def path_to_env_with_name(name, path_to_parent):
+    """
+    Loads an env.{name}.yaml file given a parent folder
+    """
     filename = 'env.yaml' if name is None else f'env.{name}.yaml'
     local_env = Path('.', filename).resolve()
 
