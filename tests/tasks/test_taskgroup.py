@@ -4,7 +4,6 @@ import pytest
 
 from ploomber import DAG
 from ploomber.executors import Serial
-from ploomber.executors.serial import build_in_subprocess
 from ploomber.tasks import PythonCallable, TaskGroup
 from ploomber.products import File, SQLRelation
 
