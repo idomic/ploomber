@@ -144,11 +144,9 @@ def path_to_env(path_to_spec):
     path_to_spec : str or pathlib.Path
         Entry point parent folder
     """
-    if path_to_spec is None:
-        return None
-
-    path_to_parent = Path(path_to_spec).parent
-    name = _extract_name(path_to_spec)
+    path_to_parent = None if path_to_spec is None else Path(
+        path_to_spec).parent
+    name = None if path_to_parent is None else _extract_name(path_to_spec)
 
     if name is None:
         return _path_to_env_with_name(name=None, path_to_parent=path_to_parent)

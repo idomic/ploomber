@@ -1373,7 +1373,7 @@ def test_load_spec_with_custom_name_in_packaged_structure(backup_test_pkg):
 def test_load_spec_relative(tmp_nbs, filename, name):
     os.rename('pipeline.yaml', filename)
     spec = DAGSpec._find_relative(name=name)
-    assert spec.path == filename
+    assert spec.path == Path(filename).resolve()
 
 
 @pytest.mark.parametrize('filename, name', [
@@ -1387,4 +1387,4 @@ def test_load_spec_relative_and_in_a_package(backup_test_pkg, filename, name):
     os.rename(path / 'pipeline.yaml', path / filename)
 
     spec = DAGSpec._find_relative(name=name)
-    assert spec.path == str(Path('src', 'test_pkg', filename))
+    assert spec.path == Path('src', 'test_pkg', filename).resolve()
