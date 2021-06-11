@@ -160,7 +160,7 @@ def path_to_env(path_to_spec):
 
     path_to_parent = None if path_to_spec is None else Path(
         path_to_spec).parent
-    name = None if path_to_parent is None else _extract_name(path_to_spec)
+    name = None if path_to_parent is None else extract_name(path_to_spec)
 
     if name is None:
         return _path_to_env_with_name(name=None, path_to_parent=path_to_parent)
@@ -188,7 +188,7 @@ def _path_to_env_with_name(name, path_to_parent):
             return str(sibling_env)
 
 
-def _extract_name(path):
+def extract_name(path):
     """
     Extract name from a path whose filename is something.{name}.{extension}.
     Returns none if the file doesn't follow the naming convention
