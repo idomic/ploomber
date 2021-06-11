@@ -1329,7 +1329,7 @@ def downstream(product, upstream):
 
 @pytest.mark.parametrize('spec',
                          [_spec_upstream_extract, _spec_upstream_manual])
-def test_spec_from_yaml_resolves_paths_from_wildcard(spec):
+def test_spec_from_yaml_resolves_paths_from_wildcard(tmp_directory, spec):
     Path('upstream.py').write_text("""
 # + tags=['parameters']
 upstream = None
@@ -1343,6 +1343,10 @@ upstream = ['upstream-*']
     spec = DAGSpec(spec)
 
     dag = spec.to_dag().render()
+
+    # on windows, paths do not resolve if the file doesn't exist
+    Path('upstream-0.ipynb').touch()
+    Path('upstream-1.ipynb').touch()
 
     assert str(Path(dag['upstream-0'].product).resolve()) == str(
         Path('upstream-0.ipynb').resolve())
