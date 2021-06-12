@@ -43,10 +43,14 @@ def entry_point(root_path=None, name=None):
         If None, searchs for a pipeline.yaml file otherwise for a
         pipeline.{name}.yaml
 
-
     Notes
     -----
     CLI calls this functions with root_path=None
+
+    Raises
+    ------
+    DAGSpecNotFound
+        If no pipeline.yaml exists in any of the standard locations
     """
     FILENAME = 'pipeline.yaml' if name is None else f'pipeline.{name}.yaml'
 
@@ -86,7 +90,8 @@ def entry_point(root_path=None, name=None):
             return relpath(Path(pkg_location).resolve(),
                            start=Path(root_path).resolve())
 
-    raise DAGSpecNotFound
+    raise DAGSpecNotFound(f'Unable to locate a {FILENAME} in any of the '
+                          'expected locations')
 
 
 def entry_point_relative(name=None):

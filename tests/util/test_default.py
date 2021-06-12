@@ -52,8 +52,9 @@ def test_entry_point_pkg_location_multiple_pkgs(tmp_directory):
         Path('src', 'package_a', 'pipeline.yaml'))
 
 
-def test_entry_point():
-    assert default.entry_point() == 'pipeline.yaml'
+def test_entry_point_error_if_not_exists():
+    with pytest.raises(DAGSpecNotFound):
+        default.entry_point()
 
 
 def test_entry_point_in_parent_folder(tmp_directory):
