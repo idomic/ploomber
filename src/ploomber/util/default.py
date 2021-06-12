@@ -27,7 +27,7 @@ def entry_point(root_path=None, name=None):
     Determines default entry point (relative to root_path),
     using the following order:
 
-    1. ENTRY_POINT environment
+    1. ENTRY_POINT environment (ignores root_path and name)
     2. {root_path}/pipeline.yaml
     3. Package layout default location src/*/pipeline.yaml
     4. Parent folders of root_path
@@ -52,8 +52,6 @@ def entry_point(root_path=None, name=None):
     DAGSpecNotFound
         If no pipeline.yaml exists in any of the standard locations
     """
-    FILENAME = 'pipeline.yaml' if name is None else f'pipeline.{name}.yaml'
-
     root_path = root_path or '.'
     env_var = os.environ.get('ENTRY_POINT')
 
@@ -61,14 +59,19 @@ def entry_point(root_path=None, name=None):
     if env_var:
         return env_var
 
+    FILENAME = 'pipeline.yaml' if name is None else f'pipeline.{name}.yaml'
+
     # try to find a src/*/pipeline.yaml relative to the initial dir
     pkg_location = _package_location(root_path, name=FILENAME)
 
+    relative_to_root_path = Path(root_path, FILENAME)
+
     # but only return it if there isn't one relative to root dir
-    if not Path(root_path, FILENAME).exists() and pkg_location:
+    if not relative_to_root_path.exists() and pkg_location:
         return pkg_location
 
-    # look recursively
+    # look recursively - this will find it relative to root path if it
+    # exists
     parent_location = find_file_recursively(FILENAME,
                                             max_levels_up=6,
                                             starting_dir=root_path)
@@ -90,8 +93,33 @@ def entry_point(root_path=None, name=None):
             return relpath(Path(pkg_location).resolve(),
                            start=Path(root_path).resolve())
 
-    raise DAGSpecNotFound(f'Unable to locate a {FILENAME} in any of the '
-                          'expected locations')
+    # ALSO look it up relative to root_project?
+
+    # use cases: called by parsers.py:50 to set the default when using the cli
+    # i think cli initialization should fail if there isn't a valid default
+    # and say "put it in a standard location or pass a value explicitly". for
+    # that to work, the defaylt must be set to something like None ot be able
+    # to know if the default look up failed
+
+    # FIXME: manager.py:115 is also reading ENTRY_POINT
+    # when initializing via jupyter (using _auto_load without args)
+    # FIXME: jupyter also calls _auto_load with starting dir arg, which should
+    # not be the case
+
+    # when using DAGSpec.find (via _auto_load)
+    # when deciding whether to add a new scaffold structure or parse the
+    # current one and add new files (catches DAGSpecNotFound)
+
+    raise DAGSpecNotFound(
+        f"""Unable to locate a {FILENAME} at one of the standard locations:
+
+1. A path defined in an ENTRY_POINT environment variable (variable not set)
+2. A file relative to {str(root_path)!r} (or relative to any of their parent directories)
+3. A src/*/{FILENAME} relative to {str(root_path)!r}
+
+Place your {FILENAME} in any of the standard locations or set an ENTRY_POINT
+environment variable.
+""")
 
 
 def entry_point_relative(name=None):
@@ -224,8 +252,8 @@ def path_to_env_with_name(name, path_to_parent):
             return str(sibling_env)
 
     if env_var:
-        raise FileNotFoundError('Faield to load env: PLOOMBER_ENV_FILENAME '
-                                f'is defined with value {env_var!r} but '
+        raise FileNotFoundError('Failed to load env: PLOOMBER_ENV_FILENAME '
+                                f'has value {env_var!r} but '
                                 'there isn\'t a file with such name. '
                                 'Tried looking it up relative to the '
                                 'current working directory '
