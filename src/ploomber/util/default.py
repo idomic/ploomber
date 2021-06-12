@@ -86,8 +86,7 @@ def entry_point(root_path=None, name=None):
             return relpath(Path(pkg_location).resolve(),
                            start=Path(root_path).resolve())
 
-    # FIXME: this should raise a DAGSpecNotFound error
-    return FILENAME
+    raise DAGSpecNotFound
 
 
 def entry_point_relative(name=None):
