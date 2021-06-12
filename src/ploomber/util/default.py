@@ -95,26 +95,27 @@ def entry_point(root_path=None, name=None):
 
     # ALSO look it up relative to root_project?
 
-    # use cases: called by parsers.py:50 to set the default when using the cli
-    # i think cli initialization should fail if there isn't a valid default
-    # and say "put it in a standard location or pass a value explicitly". for
-    # that to work, the defaylt must be set to something like None ot be able
-    # to know if the default look up failed
+    # use cases: called by the cli to locate the default entry point to use
+    # (called without any arguments)
+
+    # when using DAGSpec.find (calls DAGspec._auto_load), user may supply
+    # arguments
+
+    # when deciding whether to add a new scaffold structure or parse the
+    # current one and add new files (catches DAGSpecNotFound), called without
+    # arguments
 
     # FIXME: manager.py:115 is also reading ENTRY_POINT
     # when initializing via jupyter (using _auto_load without args)
     # FIXME: jupyter also calls _auto_load with starting dir arg, which should
     # not be the case
 
-    # when using DAGSpec.find (via _auto_load)
-    # when deciding whether to add a new scaffold structure or parse the
-    # current one and add new files (catches DAGSpecNotFound)
-
     raise DAGSpecNotFound(
         f"""Unable to locate a {FILENAME} at one of the standard locations:
 
 1. A path defined in an ENTRY_POINT environment variable (variable not set)
-2. A file relative to {str(root_path)!r} (or relative to any of their parent directories)
+2. A file relative to {str(root_path)!r} \
+(or relative to any of their parent directories)
 3. A src/*/{FILENAME} relative to {str(root_path)!r}
 
 Place your {FILENAME} in any of the standard locations or set an ENTRY_POINT

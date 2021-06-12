@@ -160,16 +160,20 @@ def test_help_displays_location_of_located_entry_point(tmp_directory):
     assert 'Entry point, defaults to pipeline.yaml\n' in parser.format_help()
 
 
-def test_custom_parser_error_if_unable_to_automatically_locate_entry_point():
+def test_custom_parser_error_if_unable_to_automatically_locate_entry_point(
+        capsys):
     parser = CustomParser()
 
     with parser:
         pass
 
-    with pytest.raises(ValueError) as excinfo:
+    with pytest.raises(SystemExit) as excinfo:
         parser.parse_entry_point_value()
 
-    assert 'Unable to find a pipeline entry point' in str(excinfo.value)
+    captured = capsys.readouterr()
+
+    assert excinfo.value.code == 2
+    assert 'Unable to find a pipeline entry point' in captured.err
 
 
 def test_error_if_missing_entry_point_value(monkeypatch, capsys):

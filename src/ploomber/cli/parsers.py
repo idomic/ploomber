@@ -98,10 +98,10 @@ class CustomParser(argparse.ArgumentParser):
         # no --entry-point/-e arg passed, use default
         if index is None:
             if self.DEFAULT_ENTRY_POINT is None:
-                raise ValueError('Unable to find a pipeline entry point. '
-                                 'Use --entry-point/-e to pass a '
-                                 'entry point\'s location directly or '
-                                 'place it in a standard location.')
+                self.error('Unable to find a pipeline entry point. '
+                           'Use --entry-point/-e to pass a '
+                           'entry point\'s location directly or '
+                           'place it in a standard location.')
 
             return self.DEFAULT_ENTRY_POINT
         else:
