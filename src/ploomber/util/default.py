@@ -31,7 +31,7 @@ which is under src/{package-name}/ how do we make this clear? same could be
 say about errors when importing dotted paths (if the dotted path isn't in
 full form and does not start with {package-name}). Maybe auto-detect if
 we are inside a package and catch FileNotFoundError and ModuleNotFoundError
-to provide guidance. e.g., check if the package is properly configured to 
+to provide guidance. e.g., check if the package is properly configured to
 help with ModuleNotFoundError and when FileNotFoundError, modify the error
 message to suggest using a {{here}} flag or a SourceLoader
 
@@ -52,11 +52,11 @@ To reduce typing, the command line interface and jupyter search for a
 pipeline.yaml (not a pipeline.{name}.yaml) in standard locations. To override
 these settings, users may set an environment variable to search for an
 alternative file by setting the name (e.g., pipeline.serve.yaml) They have the
-option to also use an environment variable to set the default env.{name}.yaml to
-use. Note that only the basename is supplied not the path to the file, since
-ploomber will look it up in standard locations. Although we could work with
-the {name} portion alone (e.g., x in pipeline.x.yaml), we get the full basename
-since it's more explicit.
+option to also use an environment variable to set the default env.{name}.yaml
+to use. Note that only the basename is supplied not the path to the file,
+since ploomber will look it up in standard locations. Although we could work
+with the {name} portion alone (e.g., x in pipeline.x.yaml), we get the full
+basename since it's more explicit.
 """
 import os
 from glob import glob
