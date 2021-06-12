@@ -58,6 +58,7 @@ since ploomber will look it up in standard locations. Although we could work
 with the {name} portion alone (e.g., x in pipeline.x.yaml), we get the full
 basename since it's more explicit.
 """
+import warnings
 import os
 from glob import glob
 from pathlib import Path
@@ -67,6 +68,9 @@ from ploomber.exceptions import DAGSpecNotFound
 
 
 def _package_location(root_path, name='pipeline.yaml'):
+    """
+    Look for a src/{package-name}/pipeline.yaml. Returns path to package
+    """
     pattern = str(Path(root_path, 'src', '*', name))
     candidates = sorted([
         f for f in glob(pattern)
@@ -370,10 +374,19 @@ def find_file_recursively(name, max_levels_up=6, starting_dir=None):
     return path_to_file
 
 
+def find_parent_of_file_recursively(name, max_levels_up=6, starting_dir=None):
+    path = find_file_recursively(name,
+                                 max_levels_up=6,
+                                 starting_dir=starting_dir)
+
+    if path:
+        return path.parent
+
+
 def find_root_recursively(starting_dir=None, raise_=False):
     """
-    Finds a project root by looking recursively for environment files
-    or a setup.py file.
+    Finds a project root by looking recursively for pipeline.yaml or a setup.py
+    file. Ignores pipeline.yaml if located in src/*/pipeline.yaml.
 
     Parameters
     ---------
@@ -382,40 +395,70 @@ def find_root_recursively(starting_dir=None, raise_=False):
 
     raise_ : bool
         Whether to raise an error or not if no root folder is found
+
+    Raises
+    ------
+    FileNotFoundError
+        If no setup.py/pipeline.yaml is found or if an incorrect folder layout
+        exists
     """
-    # new logic: go level by level looking for files *at the same time* instead
-    # of one first and then the other. only look for pipeline.{name}.yaml and
-    # setup.py and stop as you as you find one of them. pass name to know which
-    # one to look for (but then we have to make sure all methods that call this
-    # also pass the name parameter). if you find a setup.py, look for a
-    # src/*/pipeline.{name}.yaml - the main issue is dealing with the name
-    # thing, for example, clients make use of this function but they have
-    # no context about which pipeline.{name}.yaml they're using
-    # open option would be to make pipeline.yaml mandatory when another one
-    # with pipeline.{name}.yaml exists
-    # also need to check that if setup.py exists,  there must not be a sibling
-    # pipeline.yaml, but rather src/*/pipeline.yaml
-    # we may also want to check that once we locate the root, there are no
-    # other pipeline.{name}.yaml, becuase that will cause trouble since
-    # pipeline.yaml is used as root, even for pipeline.{name}.yaml files since
-    # clients have no context about this
-    # NOTE: this change also requires updateing the docstrings of all clients
+    # NOTE: update the docstrings of all clients
+    # TODO: warn if packaged structured but source loader not configured
+    # NOTE: warn if more pipelines in parent directories?
 
-    options = [
-        'environment.yml',
-        'environment.lock.yml',
-        'requirements.txt',
-        'requirements.lock.txt',
-        'setup.py',
-    ]
+    root_by_setup = find_parent_of_file_recursively('setup.py',
+                                                    max_levels_up=6,
+                                                    starting_dir=starting_dir)
 
-    for name in options:
-        path = find_file_recursively(name,
-                                     max_levels_up=6,
-                                     starting_dir=starting_dir)
+    root_by_pipeline = find_parent_of_file_recursively(
+        'pipeline.yaml',
+        max_levels_up=6,
+        starting_dir=starting_dir,
+    )
 
-        if path:
-            return path.parent
+    if not root_by_pipeline and not root_by_setup:
+        raise FileNotFoundError('Failed to determine project root. Looked '
+                                'recursively for a setup.py or '
+                                'pipeline.yaml in parent folders but none of '
+                                'those files exist')
+
+    if root_by_pipeline and not root_by_setup:
+        others = glob(str(Path(root_by_pipeline, '**', 'pipeline*.yaml')),
+                      recursive=True)
+
+        if others:
+            others_fmt = ''.join(f'* {other}\n' for other in others)
+
+            warnings.warn(
+                'Found other pipeline files in children directories of the '
+                f'project root ({str(root_by_pipeline)!r}):\n\n'
+                f'{others_fmt}\nThis will cause each pipeline to have its own '
+                'project root, which is not recommended. Consider '
+                'moving them to the same project root with different names '
+                '(e.g., project/pipeline.yaml and '
+                'project/pipeline.serve.yaml) or as siblings (e.g., '
+                'project1/pipeline.yaml and project2/pipeline.yaml)')
+
+        return root_by_pipeline
+
+    if root_by_setup:
+        if not _package_location(root_path=root_by_setup):
+            if Path(root_by_setup, 'pipeline.yaml').exists():
+                msg = ('. Move the pipeline.yaml file that exists in the '
+                       'same folder than setup.py to src/{pkg}/pipeline.yaml '
+                       'where pkg is the name of your package.')
+            else:
+                msg = ''
+
+            raise FileNotFoundError('Failed to determine project root. Found '
+                                    'a setup.py file at '
+                                    f'{str(root_by_setup)!r} and expected '
+                                    'to find a pipeline.yaml file at '
+                                    'src/*/pipeline.yaml (relative to '
+                                    'setup.py parent) but no such file was '
+                                    'found' + msg)
+
+        return root_by_setup
 
     if raise_:
         raise ValueError(
@@ -429,12 +472,5 @@ def find_package_name(starting_dir=None):
     Find package name for this project. Raises an error if it cannot find it
     """
     root = find_root_recursively(starting_dir=starting_dir, raise_=True)
-
     pkg = _package_location(root_path=root)
-
-    if not pkg:
-        raise ValueError('Could not find a valid package. Make sure '
-                         'there is a src/package/pipeline.yaml file relative '
-                         f'to your project root ({root})')
-
     return Path(pkg).parent.name
