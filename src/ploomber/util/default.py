@@ -1,5 +1,62 @@
 """
 Functions to determine defaults
+
+Layouts
+-------
+TODO: make sure soopervisor documentation also uses these two terms (simple and
+packaged)
+There are two layouts that can be used, simple and package.
+
+Simple
+------
+A project composed of a pipeline.yaml and optionally extra pipeline.{name}.yaml
+files (all of them must be in the same directory). the parent of pipeline.yaml
+is considered the project root and relative sources in all pipeline yaml files
+are so to the project root. Pipelines may be parametrized with env.{name}.yaml
+files. {{here}} and {{root}} resolve to the same directory.
+
+Packaged
+--------
+A packaged project has a setup.py file which is considered the project root. It
+must contain a src/ directory with a single folder and pipelines are declared
+in src/{package-name}/, pipeline.yaml is mandatory, with optional
+pipeline.{name}.yaml. env.{name}.yaml can be siblings of pipeline.yaml but
+env.yaml files in the current working working directory (which may not be
+src/{package-name}) take precedence. {{here}} and {{root}} resolve to
+different directories.
+
+TODO: might be confusing for users that on this case, relative paths are so
+to the project root (which is setup.py) instead of relative to pipeline.yaml,
+which is under src/{package-name}/ how do we make this clear? same could be
+say about errors when importing dotted paths (if the dotted path isn't in
+full form and does not start with {package-name}). Maybe auto-detect if
+we are inside a package and catch FileNotFoundError and ModuleNotFoundError
+to provide guidance. e.g., check if the package is properly configured to 
+help with ModuleNotFoundError and when FileNotFoundError, modify the error
+message to suggest using a {{here}} flag or a SourceLoader
+
+TODO: make it clear that packaged projects should be installed with --editable
+otherwise there isn't anotion of a setup.py in a parent directory.
+
+TODO: auto-detect when the package is installed in site-packages but pipeline
+is executed from local src/*, that should not be allows, recommend installing
+in --editable mode
+
+TODO: there is a unique where root_path is undefined: when a packge project
+is called from site-packages (e.g ploomber build my_package::pipeline.yaml).
+in such case the current working directory is set to be the root path
+
+Default entry point
+-------------------
+To reduce typing, the command line interface and jupyter search for a
+pipeline.yaml (not a pipeline.{name}.yaml) in standard locations. To override
+these settings, users may set an environment variable to search for an
+alternative file by setting the name (e.g., pipeline.serve.yaml) They have the
+option to also use an environment variable to set the default env.{name}.yaml to
+use. Note that only the basename is supplied not the path to the file, since
+ploomber will look it up in standard locations. Although we could work with
+the {name} portion alone (e.g., x in pipeline.x.yaml), we get the full basename
+since it's more explicit.
 """
 import os
 from glob import glob
@@ -72,6 +129,8 @@ def entry_point(root_path=None, name=None):
 
     # look recursively - this will find it relative to root path if it
     # exists
+
+    # we need this bc having a root path is optional
     parent_location = find_file_recursively(FILENAME,
                                             max_levels_up=6,
                                             starting_dir=root_path)
@@ -93,7 +152,11 @@ def entry_point(root_path=None, name=None):
             return relpath(Path(pkg_location).resolve(),
                            start=Path(root_path).resolve())
 
-    # ALSO look it up relative to root_project?
+    # ALSO look it up relative to root_project? -
+    # maybe if root_path is set DO NOT use root_project? from the user's
+    # perspective root_project cannot be set so it doesn't make much sense
+    # to look in the current directory, or does it?
+    # MAYBE also allow in root_project/*/pipeline.yaml?
 
     # use cases: called by the cli to locate the default entry point to use
     # (called without any arguments)
@@ -310,8 +373,7 @@ def find_file_recursively(name, max_levels_up=6, starting_dir=None):
 def find_root_recursively(starting_dir=None, raise_=False):
     """
     Finds a project root by looking recursively for environment files
-    or a setup.py file. If None of those files exist, it returns the current
-    working directory if there is a pipeline.yaml file
+    or a setup.py file.
 
     Parameters
     ---------
@@ -321,6 +383,24 @@ def find_root_recursively(starting_dir=None, raise_=False):
     raise_ : bool
         Whether to raise an error or not if no root folder is found
     """
+    # new logic: go level by level looking for files *at the same time* instead
+    # of one first and then the other. only look for pipeline.{name}.yaml and
+    # setup.py and stop as you as you find one of them. pass name to know which
+    # one to look for (but then we have to make sure all methods that call this
+    # also pass the name parameter). if you find a setup.py, look for a
+    # src/*/pipeline.{name}.yaml - the main issue is dealing with the name
+    # thing, for example, clients make use of this function but they have
+    # no context about which pipeline.{name}.yaml they're using
+    # open option would be to make pipeline.yaml mandatory when another one
+    # with pipeline.{name}.yaml exists
+    # also need to check that if setup.py exists,  there must not be a sibling
+    # pipeline.yaml, but rather src/*/pipeline.yaml
+    # we may also want to check that once we locate the root, there are no
+    # other pipeline.{name}.yaml, becuase that will cause trouble since
+    # pipeline.yaml is used as root, even for pipeline.{name}.yaml files since
+    # clients have no context about this
+    # NOTE: this change also requires updateing the docstrings of all clients
+
     options = [
         'environment.yml',
         'environment.lock.yml',
