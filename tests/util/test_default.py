@@ -246,6 +246,21 @@ def test_error_if_setup_py_and_pipeline_are_siblings(tmp_directory):
     assert 'Move the pipeline.yaml' in str(excinfo.value)
 
 
+def test_error_if_both_setup_py_and_pipeline_yaml_exist(tmp_directory):
+    Path('setup.py').touch()
+    Path('pipeline.yaml').touch()
+
+    Path('src', 'package').mkdir(parents=True)
+    Path('src', 'package', 'pipeline.yaml').touch()
+
+    dir_ = Path('path', 'to', 'dir')
+    dir_.mkdir(parents=True)
+    os.chdir(dir_)
+
+    with pytest.raises(FileExistsError):
+        default.find_root_recursively()
+
+
 @pytest.mark.parametrize('filenames', [
     ['path/pipeline.yaml'],
     ['path/to/pipeline.yaml'],

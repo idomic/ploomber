@@ -116,6 +116,18 @@ def entry_point(root_path=None, name=None):
     root_path = root_path or '.'
     env_var = os.environ.get('ENTRY_POINT')
 
+    # locate project root starting at root_path
+    # this may file if missing pipeline.yaml, setup.py or
+    # setup.py with missing src/*/pipeline.yaml, or both src/*/pipeline.py
+    # and pipeline.yaml
+
+    # if it didn't fail, continue...
+    # if setup.py in project root, return src/*/pipeline.{name}.yaml
+    # if pipeline.yaml in project root, return proj_root/pipeline.{name}.yaml
+    # but check if the file exists, if not, raise DAGSpecNotFoundError
+
+    # validate pipeline.yaml. check it has a single part (no path to dirs)
+
     # env variable gets to priority
     if env_var:
         return env_var
@@ -177,6 +189,7 @@ def entry_point(root_path=None, name=None):
     # FIXME: jupyter also calls _auto_load with starting dir arg, which should
     # not be the case
 
+    # TODO: include link to guide explaining how project root is determined
     raise DAGSpecNotFound(
         f"""Unable to locate a {FILENAME} at one of the standard locations:
 
@@ -442,8 +455,11 @@ def find_root_recursively(starting_dir=None, raise_=False):
         return root_by_pipeline
 
     if root_by_setup:
-        if not _package_location(root_path=root_by_setup):
-            if Path(root_by_setup, 'pipeline.yaml').exists():
+        pipeline_yaml = Path(root_by_setup, 'pipeline.yaml')
+        pkg_location = _package_location(root_path=root_by_setup)
+
+        if not pkg_location:
+            if pipeline_yaml.exists():
                 msg = ('. Move the pipeline.yaml file that exists in the '
                        'same folder than setup.py to src/{pkg}/pipeline.yaml '
                        'where pkg is the name of your package.')
@@ -457,6 +473,14 @@ def find_root_recursively(starting_dir=None, raise_=False):
                                     'src/*/pipeline.yaml (relative to '
                                     'setup.py parent) but no such file was '
                                     'found' + msg)
+        elif pipeline_yaml.exists():
+            pkg = Path(*Path(pkg_location).parts[-3:-1])
+            example = str(pkg / 'pipeline.another.yaml')
+            raise FileExistsError('Failed to determine project root: found '
+                                  f'two pipeline.yaml files: {pkg_location} '
+                                  f'and {pipeline_yaml}. To fix it, move '
+                                  'and rename the second file '
+                                  f'under {str(pkg)} (e.g., {example})')
 
         return root_by_setup
 
