@@ -191,6 +191,7 @@ def test_path_to_env_error_if_dir(tmp_directory):
 
 
 def test_finds_pipeline_yaml(tmp_directory):
+    expected = Path(tmp_directory).resolve()
     pip = Path('pipeline.yaml').resolve()
     pip.touch()
 
@@ -198,10 +199,11 @@ def test_finds_pipeline_yaml(tmp_directory):
     dir_.mkdir(parents=True)
     os.chdir(dir_)
 
-    assert pip.parent.resolve() == default.find_root_recursively().resolve()
+    assert expected == default.find_root_recursively().resolve()
 
 
 def test_finds_setup_py(tmp_directory):
+    expected = Path(tmp_directory).resolve()
     pip = Path('setup.py').resolve()
     pip.touch()
 
@@ -212,10 +214,11 @@ def test_finds_setup_py(tmp_directory):
     dir_.mkdir(parents=True)
     os.chdir(dir_)
 
-    assert pip.parent.resolve() == default.find_root_recursively().resolve()
+    assert expected == default.find_root_recursively().resolve()
 
 
 def test_ignores_src_package_pipeline_if_setup_py(tmp_directory):
+    expected = Path(tmp_directory).resolve()
     pip = Path('setup.py').resolve()
     pip.touch()
 
@@ -224,7 +227,7 @@ def test_ignores_src_package_pipeline_if_setup_py(tmp_directory):
     os.chdir(dir_)
     Path('pipeline.yaml').touch()
 
-    assert pip.parent.resolve() == default.find_root_recursively().resolve()
+    assert expected == default.find_root_recursively().resolve()
 
 
 def test_error_if_no_pipeline_yaml_and_no_setup_py(tmp_directory):
