@@ -469,12 +469,6 @@ class DAGSpec(MutableMapping):
         # the constructor also does it (in the try version)
         path = entry_point(root_path=root_path, name=name)
 
-        # FIXME: due to recent changes, this cannot be none
-        if path is None:
-            if to_dag:
-                return None, None, None
-            else:
-                return None, None
         try:
             spec = cls(path, env=env, lazy_import=lazy_import, reload=reload)
 
