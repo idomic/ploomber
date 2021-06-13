@@ -86,14 +86,11 @@ def _package_location(root_path, name='pipeline.yaml'):
 # FIXME: re-write docstring
 def entry_point(root_path=None, name=None):
     """
-    Determines default entry point (relative to root_path),
-    using the following order:
-
-    1. ENTRY_POINT environment (ignores root_path and name)
-    2. {root_path}/pipeline.yaml
-    3. Package layout default location src/*/pipeline.yaml
-    4. Parent folders of root_path
-    5. Looks for a setup.py in the parent folders, then src/*/pipeline.yaml
+    Determines the default entry point. It first looks for the project root. If
+    the project isn't a package, it returns project_root/pipeline.{name}.yaml,
+    otherwise src/*/pipeline.{name}.yaml. If the ENTRY_POINT environment
+    variable is set, it looks for a file with such name
+    (e.g., project_root/{ENTRY_POINT}).
 
     Parameters
     ----------
@@ -103,7 +100,8 @@ def entry_point(root_path=None, name=None):
 
     name : str, default=None
         If None, searchs for a pipeline.yaml file otherwise for a
-        pipeline.{name}.yaml
+        pipeline.{name}.yaml. Must be None if the ENTRY_POINT environment
+        variable is set
 
     Notes
     -----
@@ -113,10 +111,13 @@ def entry_point(root_path=None, name=None):
     ------
     DAGSpecNotFound
         If no pipeline.yaml exists in any of the standard locations
+    ValueError
     """
     # FIXME: rename env var used
     root_path = root_path or '.'
     env_var = os.environ.get('ENTRY_POINT')
+
+    # TODO: raise error if env var and name
 
     if env_var:
         if len(Path(env_var).parts) > 1:
@@ -367,7 +368,7 @@ def find_parent_of_file_recursively(name, max_levels_up=6, starting_dir=None):
         return path.parent
 
 
-def find_root_recursively(starting_dir=None, raise_=False):
+def find_root_recursively(starting_dir=None):
     """
     Finds a project root by looking recursively for pipeline.yaml or a setup.py
     file. Ignores pipeline.yaml if located in src/*/pipeline.yaml.
@@ -454,6 +455,13 @@ def find_root_recursively(starting_dir=None, raise_=False):
                             'recursively for a setup.py or '
                             'pipeline.yaml in parent folders but none of '
                             'those files exist')
+
+
+def try_to_find_root_recursively():
+    try:
+        return find_root_recursively()
+    except Exception:
+        pass
 
 
 def find_package_name(starting_dir=None):
