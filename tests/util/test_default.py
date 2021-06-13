@@ -17,9 +17,17 @@ def pkg_location():
     return str(pkg_location)
 
 
-def test_entry_point_env_var(monkeypatch, tmp_directory, pkg_location):
-    monkeypatch.setenv('ENTRY_POINT', 'some.entry.point')
-    assert default.entry_point() == 'some.entry.point'
+def test_entry_point_env_var(monkeypatch, tmp_directory):
+    Path('pipeline.yaml').touch()
+    Path('pipeline-custom.yaml').touch()
+    monkeypatch.setenv('ENTRY_POINT', 'pipeline-custom.yaml')
+    assert default.entry_point() == 'pipeline-custom.yaml'
+
+
+def test_entry_point_env_var_in_pkg(monkeypatch, tmp_directory, pkg_location):
+    Path('src', 'package_a', 'pipeline-custom.yaml').touch()
+    monkeypatch.setenv('ENTRY_POINT', 'pipeline-custom.yaml')
+    assert default.entry_point() == 'src/package_a/pipeline-custom.yaml'
 
 
 def test_error_if_env_var_contains_directories(monkeypatch):

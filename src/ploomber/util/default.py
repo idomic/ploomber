@@ -83,6 +83,7 @@ def _package_location(root_path, name='pipeline.yaml'):
 
 # NOTE: this is documented in doc/api/cli.rst, changes should also be reflected
 # there
+# FIXME: re-write docstring
 def entry_point(root_path=None, name=None):
     """
     Determines default entry point (relative to root_path),
@@ -129,7 +130,8 @@ def entry_point(root_path=None, name=None):
         filename = 'pipeline.yaml' if name is None else f'pipeline.{name}.yaml'
 
     # FIXME: it's confusing it it fails at this point, maybe raise a chained
-    # exception?
+    # exception? - example looking for pipeline.train.yaml which exists
+    # but pipeline.yaml doesnt
     project_root = find_root_recursively(starting_dir=root_path)
 
     if Path(project_root, 'setup.py').exists():
@@ -139,6 +141,8 @@ def entry_point(root_path=None, name=None):
             return relpath(entry_point, Path().resolve())
 
     if Path(project_root, filename).exists():
+        # TODO: handle the case where filename isn't a filename but a dotted
+        # path
         return relpath(Path(project_root, filename), Path().resolve())
 
     # use cases: called by the cli to locate the default entry point to use
