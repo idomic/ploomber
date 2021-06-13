@@ -27,7 +27,8 @@ def test_entry_point_env_var(monkeypatch, tmp_directory):
 def test_entry_point_env_var_in_pkg(monkeypatch, tmp_directory, pkg_location):
     Path('src', 'package_a', 'pipeline-custom.yaml').touch()
     monkeypatch.setenv('ENTRY_POINT', 'pipeline-custom.yaml')
-    assert default.entry_point() == 'src/package_a/pipeline-custom.yaml'
+    assert default.entry_point() == str(
+        Path('src', 'package_a', 'pipeline-custom.yaml'))
 
 
 def test_error_if_env_var_contains_directories(monkeypatch):
@@ -197,7 +198,7 @@ def test_finds_pipeline_yaml(tmp_directory):
     dir_.mkdir(parents=True)
     os.chdir(dir_)
 
-    assert pip.parent == default.find_root_recursively()
+    assert pip.parent.resolve() == default.find_root_recursively().resolve()
 
 
 def test_finds_setup_py(tmp_directory):
@@ -211,7 +212,7 @@ def test_finds_setup_py(tmp_directory):
     dir_.mkdir(parents=True)
     os.chdir(dir_)
 
-    assert pip.parent == default.find_root_recursively()
+    assert pip.parent.resolve() == default.find_root_recursively().resolve()
 
 
 def test_ignores_src_package_pipeline_if_setup_py(tmp_directory):
@@ -223,7 +224,7 @@ def test_ignores_src_package_pipeline_if_setup_py(tmp_directory):
     os.chdir(dir_)
     Path('pipeline.yaml').touch()
 
-    assert pip.parent == default.find_root_recursively()
+    assert pip.parent.resolve() == default.find_root_recursively().resolve()
 
 
 def test_error_if_no_pipeline_yaml_and_no_setup_py(tmp_directory):
@@ -308,7 +309,7 @@ def test_warns_if_other_pipeline_yaml_as_children_of_root_path(
 
     assert len(record) == 1
     assert 'Found other pipeline files' in record[0].message.args[0]
-    assert all([f in record[0].message.args[0] for f in filenames])
+    assert all([str(Path(f)) in record[0].message.args[0] for f in filenames])
 
 
 @pytest.mark.parametrize('to_create, to_move', [
