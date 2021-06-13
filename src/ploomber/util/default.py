@@ -109,7 +109,11 @@ def entry_point(root_path=None, name=None):
 
     Notes
     -----
-    CLI calls this function with root_path=None
+    Use cases for this function:
+    * Called by the cli to locate the default entry point to use (nor args)
+    * Via DAGSpec.find (calls DAGspec._auto_load), user may supply args
+    * When deciding whether to add a new scaffold structure or parse the
+        current one and add new files (catches DAGSpecInvalidError), no args
 
     Raises
     ------
@@ -151,22 +155,10 @@ def entry_point(root_path=None, name=None):
         # path
         return relpath(Path(project_root, filename), Path().resolve())
 
-    # use cases: called by the cli to locate the default entry point to use
-    # (called without any arguments)
-
-    # when using DAGSpec.find (calls DAGspec._auto_load), user may supply
-    # arguments
-
-    # when deciding whether to add a new scaffold structure or parse the
-    # current one and add new files (catches DAGSpecInvalidError), called
-    # without
-    # arguments
-
     # FIXME: manager.py:115 is also reading ENTRY_POINT
     # when initializing via jupyter (using _auto_load without args)
     # FIXME: jupyter also calls _auto_load with starting dir arg, which should
     # not be the case
-
     # TODO: include link to guide explaining how project root is determined
     raise DAGSpecInvalidError(
         f"""Unable to locate a {filename} at one of the standard locations:
@@ -182,6 +174,9 @@ environment variable.
 
 
 def try_to_find_entry_point():
+    """Try to find the default entry point. Returns None if it isn't possible
+    """
+    # TODO: maybe display a warning with the error?
     try:
         return entry_point(root_path=None, name=None)
     except Exception:
