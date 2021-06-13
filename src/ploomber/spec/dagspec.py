@@ -323,8 +323,7 @@ class DAGSpec(MutableMapping):
             # call
             # TODO: if loading from a dict, {{root}} should not be available
             # or perhaps make it = to parent_path?
-            project_root = (default.try_to_find_root_recursively()
-                            or self._parent_path)
+            project_root = self._parent_path
 
             # make sure the folder where the pipeline is located is in sys.path
             # otherwise dynamic imports needed by TaskSpec will fail
