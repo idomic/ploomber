@@ -178,7 +178,7 @@ environment variable.
 def try_to_find_entry_point():
     try:
         return entry_point(root_path=None, name=None)
-    except:
+    except Exception:
         pass
 
 
