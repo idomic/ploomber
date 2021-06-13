@@ -122,6 +122,8 @@ def entry_point(root_path=None, name=None):
         pipeline.{name}.yaml exists in the expected location
         (once project root is determined).
     """
+    # TODO: it must be clear this env var works. it must have a project root
+    # for this to work
     # FIXME: rename env var used
     root_path = root_path or '.'
     env_var = os.environ.get('ENTRY_POINT')
@@ -479,6 +481,7 @@ def find_root_recursively(starting_dir=None):
 
 
 def try_to_find_root_recursively():
+    # TODO: display warning
     try:
         return find_root_recursively()
     except Exception:
