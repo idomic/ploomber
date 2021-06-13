@@ -69,7 +69,12 @@ from ploomber.exceptions import DAGSpecInvalidError
 
 def _package_location(root_path, name='pipeline.yaml'):
     """
-    Look for a src/{package-name}/pipeline.yaml. Returns path to package
+    Look for a src/{package-name}/pipeline.yaml relative to root_path
+
+    Returns
+    -------
+    str
+        Path to package
     """
     pattern = str(Path(root_path, 'src', '*', name))
     candidates = sorted([
@@ -83,14 +88,13 @@ def _package_location(root_path, name='pipeline.yaml'):
 
 # NOTE: this is documented in doc/api/cli.rst, changes should also be reflected
 # there
-# FIXME: re-write docstring
 def entry_point(root_path=None, name=None):
     """
-    Determines the default entry point. It first looks for the project root. If
-    the project isn't a package, it returns project_root/pipeline.{name}.yaml,
-    otherwise src/*/pipeline.{name}.yaml. If the ENTRY_POINT environment
-    variable is set, it looks for a file with such name
-    (e.g., project_root/{ENTRY_POINT}).
+    Determines the default entry point. It first determines the project root.
+    If the project isn't a package, it returns
+    project_root/pipeline.{name}.yaml, otherwise src/*/pipeline.{name}.yaml.
+    If the ENTRY_POINT environment variable is set, it looks for a file with
+    such name (e.g., project_root/{ENTRY_POINT}).
 
     Parameters
     ----------
@@ -105,13 +109,14 @@ def entry_point(root_path=None, name=None):
 
     Notes
     -----
-    CLI calls this functions with root_path=None
+    CLI calls this function with root_path=None
 
     Raises
     ------
     DAGSpecInvalidError
-        If no pipeline.yaml exists in any of the standard locations
-    ValueError
+        If fails to determine project root or if no pipeline.yaml or
+        pipeline.{name}.yaml exists in the expected location
+        (once project root is determined).
     """
     # FIXME: rename env var used
     root_path = root_path or '.'
@@ -153,7 +158,8 @@ def entry_point(root_path=None, name=None):
     # arguments
 
     # when deciding whether to add a new scaffold structure or parse the
-    # current one and add new files (catches DAGSpecInvalidError), called without
+    # current one and add new files (catches DAGSpecInvalidError), called
+    # without
     # arguments
 
     # FIXME: manager.py:115 is also reading ENTRY_POINT
@@ -190,10 +196,6 @@ def entry_point_relative(name=None):
     ------
     DAGSpecInvalidError
         If cannot locate the requested file
-
-    ValueError
-        If more than one file with the name exist (i.e., both
-        pipeline.{name}.yaml and src/*/pipeline.{name}.yaml)
 
     Notes
     -----
@@ -348,8 +350,10 @@ def find_file_recursively(name, max_levels_up=6, starting_dir=None):
 
     Returns
     -------
-    path
+    path : str
         Absolute path to the file
+    levels : int
+        How many levels up the file is located
     """
     current_dir = starting_dir or os.getcwd()
     current_dir = Path(current_dir).resolve()
