@@ -9,6 +9,7 @@ from ploomber.exceptions import DAGSpecNotFound
 
 @pytest.fixture
 def pkg_location():
+    Path('setup.py').touch()
     parent = Path('src', 'package_a')
     parent.mkdir(parents=True)
     pkg_location = (parent / 'pipeline.yaml')
@@ -21,16 +22,22 @@ def test_entry_point_env_var(monkeypatch, tmp_directory, pkg_location):
     assert default.entry_point() == 'some.entry.point'
 
 
+def test_error_if_env_var_contains_directories(monkeypatch):
+    monkeypatch.setenv('ENTRY_POINT', 'path/to/pipeline.yaml')
+
+    with pytest.raises(ValueError) as excinfo:
+        default.entry_point()
+
+    assert 'must be a filename' in str(excinfo.value)
+
+
 def test_entry_point_pkg_location(tmp_directory, pkg_location):
     assert default.entry_point() == str(pkg_location)
 
 
-def test_entry_point_pkg_location_and_yaml(tmp_directory, pkg_location):
-    Path('pipeline.yaml').touch()
-    assert default.entry_point() == 'pipeline.yaml'
-
-
 def test_entry_point_pkg_location_ignore_egg_info(tmp_directory):
+    Path('setup.py').touch()
+
     for pkg in ['package_a.egg-info', 'package_b']:
         parent = Path('src', pkg)
         parent.mkdir(parents=True)
@@ -42,6 +49,8 @@ def test_entry_point_pkg_location_ignore_egg_info(tmp_directory):
 
 
 def test_entry_point_pkg_location_multiple_pkgs(tmp_directory):
+    Path('setup.py').touch()
+
     for pkg in ['package_a', 'package_b']:
         parent = Path('src', pkg)
         parent.mkdir(parents=True)

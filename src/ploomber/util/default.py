@@ -113,66 +113,33 @@ def entry_point(root_path=None, name=None):
     DAGSpecNotFound
         If no pipeline.yaml exists in any of the standard locations
     """
+    # FIXME: rename env var used
     root_path = root_path or '.'
     env_var = os.environ.get('ENTRY_POINT')
 
-    # locate project root starting at root_path
-    # this may file if missing pipeline.yaml, setup.py or
-    # setup.py with missing src/*/pipeline.yaml, or both src/*/pipeline.py
-    # and pipeline.yaml
-
-    # if it didn't fail, continue...
-    # if setup.py in project root, return src/*/pipeline.{name}.yaml
-    # if pipeline.yaml in project root, return proj_root/pipeline.{name}.yaml
-    # but check if the file exists, if not, raise DAGSpecNotFoundError
-
-    # validate pipeline.yaml. check it has a single part (no path to dirs)
-
-    # env variable gets to priority
     if env_var:
-        return env_var
+        if len(Path(env_var).parts) > 1:
+            raise ValueError(f'ENTRY_POINT ({env_var!r}) '
+                             'must be a filename and do not contain any '
+                             'directory components (e.g., pipeline.yaml, '
+                             'not path/to/pipeline.yaml).')
 
-    FILENAME = 'pipeline.yaml' if name is None else f'pipeline.{name}.yaml'
+        filename = env_var
+    else:
+        filename = 'pipeline.yaml' if name is None else f'pipeline.{name}.yaml'
 
-    # try to find a src/*/pipeline.yaml relative to the initial dir
-    pkg_location = _package_location(root_path, name=FILENAME)
+    # FIXME: it's confusing it it fails at this point, maybe raise a chained
+    # exception?
+    project_root = find_root_recursively(starting_dir=root_path)
 
-    relative_to_root_path = Path(root_path, FILENAME)
+    if Path(project_root, 'setup.py').exists():
+        entry_point = _package_location(root_path=project_root, name=filename)
 
-    # but only return it if there isn't one relative to root dir
-    if not relative_to_root_path.exists() and pkg_location:
-        return pkg_location
+        if entry_point is not None:
+            return relpath(entry_point, Path().resolve())
 
-    # look recursively - this will find it relative to root path if it
-    # exists
-
-    # we need this bc having a root path is optional
-    parent_location = find_file_recursively(FILENAME,
-                                            max_levels_up=6,
-                                            starting_dir=root_path)
-
-    # if you found it, return it
-    if parent_location:
-        return relpath(Path(parent_location).resolve(),
-                       start=Path(root_path).resolve())
-
-    # the only remaining case is a src/*/pipeline.yaml relative to a parent
-    # directory. First, find the project root, then try to look for the
-    # src/*/pipeline.yaml
-    root_project = find_root_recursively(starting_dir=root_path)
-
-    if root_project:
-        pkg_location = _package_location(root_project, name=FILENAME)
-
-        if pkg_location:
-            return relpath(Path(pkg_location).resolve(),
-                           start=Path(root_path).resolve())
-
-    # ALSO look it up relative to root_project? -
-    # maybe if root_path is set DO NOT use root_project? from the user's
-    # perspective root_project cannot be set so it doesn't make much sense
-    # to look in the current directory, or does it?
-    # MAYBE also allow in root_project/*/pipeline.yaml?
+    if Path(project_root, filename).exists():
+        return relpath(Path(project_root, filename), Path().resolve())
 
     # use cases: called by the cli to locate the default entry point to use
     # (called without any arguments)
@@ -191,14 +158,14 @@ def entry_point(root_path=None, name=None):
 
     # TODO: include link to guide explaining how project root is determined
     raise DAGSpecNotFound(
-        f"""Unable to locate a {FILENAME} at one of the standard locations:
+        f"""Unable to locate a {filename} at one of the standard locations:
 
 1. A path defined in an ENTRY_POINT environment variable (variable not set)
 2. A file relative to {str(root_path)!r} \
 (or relative to any of their parent directories)
-3. A src/*/{FILENAME} relative to {str(root_path)!r}
+3. A src/*/{filename} relative to {str(root_path)!r}
 
-Place your {FILENAME} in any of the standard locations or set an ENTRY_POINT
+Place your {filename} in any of the standard locations or set an ENTRY_POINT
 environment variable.
 """)
 
@@ -418,6 +385,7 @@ def find_root_recursively(starting_dir=None, raise_=False):
     # NOTE: update the docstrings of all clients
     # TODO: warn if packaged structured but source loader not configured
     # NOTE: warn if more pipelines in parent directories?
+    # TODO: check who is calling raise_=False and check how to fix it
 
     root_by_setup = find_parent_of_file_recursively('setup.py',
                                                     max_levels_up=6,
@@ -428,12 +396,6 @@ def find_root_recursively(starting_dir=None, raise_=False):
         max_levels_up=6,
         starting_dir=starting_dir,
     )
-
-    if not root_by_pipeline and not root_by_setup:
-        raise FileNotFoundError('Failed to determine project root. Looked '
-                                'recursively for a setup.py or '
-                                'pipeline.yaml in parent folders but none of '
-                                'those files exist')
 
     if root_by_pipeline and not root_by_setup:
         others = glob(str(Path(root_by_pipeline, '**', 'pipeline*.yaml')),
@@ -484,11 +446,10 @@ def find_root_recursively(starting_dir=None, raise_=False):
 
         return root_by_setup
 
-    if raise_:
-        raise ValueError(
-            'Could not determine project\'s root directory. '
-            'Looked recursively for an environment.yml, requirements.txt or'
-            ' setup.py file. Add one of those and try again.')
+    raise FileNotFoundError('Failed to determine project root. Looked '
+                            'recursively for a setup.py or '
+                            'pipeline.yaml in parent folders but none of '
+                            'those files exist')
 
 
 def find_package_name(starting_dir=None):
