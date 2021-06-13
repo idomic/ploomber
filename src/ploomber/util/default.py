@@ -64,7 +64,7 @@ from glob import glob
 from pathlib import Path
 from os.path import relpath
 
-from ploomber.exceptions import DAGSpecNotFound
+from ploomber.exceptions import DAGSpecInvalidError
 
 
 def _package_location(root_path, name='pipeline.yaml'):
@@ -109,7 +109,7 @@ def entry_point(root_path=None, name=None):
 
     Raises
     ------
-    DAGSpecNotFound
+    DAGSpecInvalidError
         If no pipeline.yaml exists in any of the standard locations
     ValueError
     """
@@ -153,7 +153,7 @@ def entry_point(root_path=None, name=None):
     # arguments
 
     # when deciding whether to add a new scaffold structure or parse the
-    # current one and add new files (catches DAGSpecNotFound), called without
+    # current one and add new files (catches DAGSpecInvalidError), called without
     # arguments
 
     # FIXME: manager.py:115 is also reading ENTRY_POINT
@@ -162,7 +162,7 @@ def entry_point(root_path=None, name=None):
     # not be the case
 
     # TODO: include link to guide explaining how project root is determined
-    raise DAGSpecNotFound(
+    raise DAGSpecInvalidError(
         f"""Unable to locate a {filename} at one of the standard locations:
 
 1. A path defined in an ENTRY_POINT environment variable (variable not set)
@@ -188,7 +188,7 @@ def entry_point_relative(name=None):
 
     Raises
     ------
-    DAGSpecNotFound
+    DAGSpecInvalidError
         If cannot locate the requested file
 
     ValueError
@@ -207,14 +207,15 @@ def entry_point_relative(name=None):
     location = FILENAME if Path(FILENAME).exists() else None
 
     if location_pkg and location:
-        raise ValueError(f'Error loading {FILENAME}, both {location} '
-                         '(relative to the current working directory) '
-                         f'and {location_pkg} exist, but expected only one. '
-                         f'If your project is a package, keep {location_pkg}, '
-                         f'if it\'s not, keep {location}')
+        raise DAGSpecInvalidError(
+            f'Error loading {FILENAME}, both {location} '
+            '(relative to the current working directory) '
+            f'and {location_pkg} exist, but expected only one. '
+            f'If your project is a package, keep {location_pkg}, '
+            f'if it\'s not, keep {location}')
 
     if location_pkg is None and location is None:
-        raise DAGSpecNotFound(
+        raise DAGSpecInvalidError(
             f'Could not find dag spec with name {FILENAME}, '
             'make sure the file is located relative to the working directory '
             f'or in src/pkg_name/{FILENAME} (where pkg_name is the name of '
@@ -393,9 +394,8 @@ def find_root_recursively(starting_dir=None):
 
     Raises
     ------
-    FileNotFoundError
-        If no setup.py/pipeline.yaml is found or if an incorrect folder layout
-        exists
+    DAGSpecInvalidError
+        If fails to determine a valid project root
     """
     # NOTE: update the docstrings of all clients - we must catch errors
     # from here and explain that if there isn't a project root a value must
@@ -415,11 +415,13 @@ def find_root_recursively(starting_dir=None):
         starting_dir=starting_dir,
     )
 
-    # use found pipeline.yaml if there is no setup.py OR if the pipeline.yaml
-    # if closer to the starting_dir than the setup.py. e.g.,
-    # project/some/pipeline.yaml vs project/setup.py
-    if root_by_pipeline and (not root_by_setup
-                             or pipeline_levels < setup_levels):
+    # use found pipeline.yaml if not in a src/*/pipeline.yaml structure when
+    # there is no setup.py
+    # OR
+    # if the pipeline.yaml if closer to the starting_dir than the setup.py.
+    # e.g., project/some/pipeline.yaml vs project/setup.py
+    if (root_by_pipeline and root_by_pipeline.parents[0].name != 'src'
+            and (not root_by_setup or pipeline_levels < setup_levels)):
         others = glob(str(Path(root_by_pipeline, '**', 'pipeline*.yaml')),
                       recursive=True)
 
@@ -451,28 +453,30 @@ def find_root_recursively(starting_dir=None):
             else:
                 msg = ''
 
-            raise FileNotFoundError('Failed to determine project root. Found '
-                                    'a setup.py file at '
-                                    f'{str(root_by_setup)!r} and expected '
-                                    'to find a pipeline.yaml file at '
-                                    'src/*/pipeline.yaml (relative to '
-                                    'setup.py parent) but no such file was '
-                                    'found' + msg)
+            raise DAGSpecInvalidError(
+                'Failed to determine project root. Found '
+                'a setup.py file at '
+                f'{str(root_by_setup)!r} and expected '
+                'to find a pipeline.yaml file at '
+                'src/*/pipeline.yaml (relative to '
+                'setup.py parent) but no such file was '
+                'found' + msg)
         elif pipeline_yaml.exists():
             pkg = Path(*Path(pkg_location).parts[-3:-1])
             example = str(pkg / 'pipeline.another.yaml')
-            raise FileExistsError('Failed to determine project root: found '
-                                  f'two pipeline.yaml files: {pkg_location} '
-                                  f'and {pipeline_yaml}. To fix it, move '
-                                  'and rename the second file '
-                                  f'under {str(pkg)} (e.g., {example})')
+            raise DAGSpecInvalidError(
+                'Failed to determine project root: found '
+                f'two pipeline.yaml files: {pkg_location} '
+                f'and {pipeline_yaml}. To fix it, move '
+                'and rename the second file '
+                f'under {str(pkg)} (e.g., {example})')
 
         return root_by_setup
 
-    raise FileNotFoundError('Failed to determine project root. Looked '
-                            'recursively for a setup.py or '
-                            'pipeline.yaml in parent folders but none of '
-                            'those files exist')
+    raise DAGSpecInvalidError('Failed to determine project root. Looked '
+                              'recursively for a setup.py or '
+                              'pipeline.yaml in parent folders but none of '
+                              'those files exist')
 
 
 def try_to_find_root_recursively():
@@ -484,8 +488,9 @@ def try_to_find_root_recursively():
 
 def find_package_name(starting_dir=None):
     """
-    Find package name for this project. Raises an error if it cannot find it
+    Find package name for this project. Raises an error if it cannot determine
+    a valid root path
     """
-    root = find_root_recursively(starting_dir=starting_dir, raise_=True)
+    root = find_root_recursively(starting_dir=starting_dir)
     pkg = _package_location(root_path=root)
     return Path(pkg).parent.name
