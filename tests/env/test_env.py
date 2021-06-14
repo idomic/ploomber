@@ -1,6 +1,5 @@
 import os
 import importlib
-import platform
 from pathlib import Path
 import getpass
 import inspect
