@@ -447,7 +447,8 @@ def find_root_recursively(starting_dir=None, filename=None):
     # FIXME: maybe apply the same levels rule?
     if root_by_setup:
         pipeline_yaml = Path(root_by_setup, filename)
-        pkg_location = _package_location(root_path=root_by_setup)
+        pkg_location = _package_location(root_path=root_by_setup,
+                                         name=filename)
 
         if not pkg_location:
             if pipeline_yaml.exists():
