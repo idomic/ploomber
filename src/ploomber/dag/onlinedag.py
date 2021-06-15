@@ -8,8 +8,6 @@ import abc
 from pathlib import Path
 from itertools import chain
 
-import yaml
-
 from ploomber import InMemoryDAG, DAG
 from ploomber.spec.dagspec import DAGSpecPartial
 from ploomber.tasks import input_data_passer, in_memory_callable
