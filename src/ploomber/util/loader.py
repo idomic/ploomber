@@ -28,13 +28,12 @@ def entry_point_load(starting_dir, reload):
         path = Path(entry_point)
         return spec, spec.to_dag(), path
     else:
-        return _default_spec_load(starting_dir=starting_dir, reload=reload)
+        spec, path = _default_spec_load(starting_dir=starting_dir,
+                                        reload=reload)
+        return spec, spec.to_dag(), path
 
 
-def _default_spec_load(to_dag=True,
-                       starting_dir=None,
-                       lazy_import=False,
-                       reload=False):
+def _default_spec_load(starting_dir=None, lazy_import=False, reload=False):
     """
     NOTE: this is a private API. Use DAGSpec.find() instead
 
@@ -60,10 +59,7 @@ def _default_spec_load(to_dag=True,
                        lazy_import=lazy_import,
                        reload=reload)
 
-        if to_dag:
-            return spec, spec.to_dag(), Path(path_to_entry_point).parent
-        else:
-            return spec, Path(path_to_entry_point).parent
+        return spec, Path(path_to_entry_point).parent
 
     except Exception as e:
         exc = DAGSpecInitializationError('Error initializing DAG from '
