@@ -2,6 +2,8 @@ from pathlib import Path
 import os
 
 from ploomber.spec import DAGSpec
+from ploomber.util import default
+from ploomber.exceptions import DAGSpecInitializationError
 
 # raise an error if name is not None and ENTRY_POINT set when calling fn?
 # maybe create a separate function that works at the env var level and leave
@@ -26,4 +28,44 @@ def entry_point_load(starting_dir, reload):
         path = Path(entry_point)
         return spec, spec.to_dag(), path
     else:
-        return DAGSpec._auto_load(starting_dir=starting_dir, reload=reload)
+        return _default_spec_load(starting_dir=starting_dir, reload=reload)
+
+
+def _default_spec_load(to_dag=True,
+                       starting_dir=None,
+                       lazy_import=False,
+                       reload=False):
+    """
+    NOTE: this is a private API. Use DAGSpec.find() instead
+
+    Looks for a pipeline.yaml, generates a DAGSpec and returns a DAG.
+    Currently, this is only used by the PloomberContentsManager, this is
+    not intended to be a public API since initializing specs from paths
+    where we have to recursively look for a pipeline.yaml has some
+    considerations regarding relative paths that make this confusing,
+    inside the contents manager, all those things are all handled for that
+    use case.
+
+    The pipeline.yaml parent folder is temporarily added to sys.path when
+    calling DAGSpec.to_dag() to make sure imports work as expected
+
+    Returns DAG and the directory where the pipeline.yaml file is located.
+    """
+    root_path = starting_dir or os.getcwd()
+    path_to_entry_point = default.entry_point(root_path=root_path)
+
+    try:
+        spec = DAGSpec(path_to_entry_point,
+                       env=None,
+                       lazy_import=lazy_import,
+                       reload=reload)
+
+        if to_dag:
+            return spec, spec.to_dag(), Path(path_to_entry_point).parent
+        else:
+            return spec, Path(path_to_entry_point).parent
+
+    except Exception as e:
+        exc = DAGSpecInitializationError('Error initializing DAG from '
+                                         f'{path_to_entry_point!s}')
+        raise exc from e

@@ -147,7 +147,6 @@ def entry_point(root_path=None):
     -----
     Use cases for this function:
     * Called by the cli to locate the default entry point to use (nor args)
-    * Via DAGSpec.find (calls DAGspec._auto_load), user may supply args
     * When deciding whether to add a new scaffold structure or parse the
         current one and add new files (catches DAGSpecInvalidError), no args
 
