@@ -176,7 +176,7 @@ def entry_point(root_path=None):
     else:
         filename = 'pipeline.yaml'
 
-    return entry_point_with_name(root_path=None, name=filename)
+    return entry_point_with_name(root_path=root_path, name=filename)
 
 
 def try_to_find_entry_point():
