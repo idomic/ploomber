@@ -86,6 +86,7 @@ def _package_location(root_path, name='pipeline.yaml'):
     return candidates[0] if candidates else None
 
 
+# TODO: test this with name!=None
 def entry_point_with_name(root_path=None, name=None):
     """
 
