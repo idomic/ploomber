@@ -5,17 +5,6 @@ from ploomber.spec import DAGSpec
 from ploomber.util import default
 from ploomber.exceptions import DAGSpecInitializationError
 
-# raise an error if name is not None and ENTRY_POINT set when calling fn?
-# maybe create a separate function that works at the env var level and leave
-# the other one at the name arg level?
-
-# TODO:
-# refactor DAGSpec.find - it should receive the name arg and ignore the
-# env var. the reasoning is that find is called by users, who can simply
-# pass another name arg. auto_load should not have the name arg because
-# that's called automatically (e.g. by jupyter) so any name customizations
-# should be done via the env var
-
 
 def entry_point_load(starting_dir, reload):
     entry_point = os.environ.get('ENTRY_POINT')
