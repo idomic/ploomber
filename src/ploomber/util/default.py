@@ -185,7 +185,7 @@ def try_to_find_entry_point():
     """
     # TODO: maybe display a warning with the error?
     try:
-        return entry_point(root_path=None, name=None)
+        return entry_point(root_path=None)
     except Exception:
         pass
 
