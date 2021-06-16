@@ -13,9 +13,7 @@ from collections import defaultdict
 from jupytext.contentsmanager import TextFileContentsManager
 
 from ploomber.sources.notebooksource import (_cleanup_rendered_nb, inject_cell)
-from ploomber.spec.dagspec import DAGSpec
 from ploomber.exceptions import DAGSpecInitializationError, DAGSpecInvalidError
-from ploomber.cli import parsers
 from ploomber.jupyter.dag import JupyterDAGManager
 from ploomber.util import loader
 
