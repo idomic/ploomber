@@ -47,6 +47,9 @@ class DAGMapping(Mapping):
         for task in self._mapping[key]:
             task.product.metadata.delete()
 
+    def __repr__(self):
+        return f'{type(self).__name__}({self._mapping}!r)'
+
 
 @contextlib.contextmanager
 def chdir(directory):
