@@ -109,8 +109,6 @@ def entry_point_with_name(root_path=None, name=None):
             return relpath(entry_point, Path().resolve())
 
     if Path(project_root, filename).exists():
-        # TODO: handle the case where filename isn't a filename but a dotted
-        # path
         return relpath(Path(project_root, filename), Path().resolve())
 
     # TODO: include link to guide explaining how project root is determined
