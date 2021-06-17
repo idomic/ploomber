@@ -15,11 +15,14 @@ def entry_point_load(starting_dir, reload):
     if entry_point and Path(entry_point).is_dir():
         spec = DAGSpec.from_directory(entry_point)
         path = Path(entry_point)
-        return spec, spec.to_dag(), path
     else:
         spec, path = _default_spec_load(starting_dir=starting_dir,
                                         reload=reload)
-        return spec, spec.to_dag(), path
+
+    # chain exception to provide more context
+    dag = spec.to_dag()
+
+    return spec, dag, path
 
 
 def _default_spec_load(starting_dir=None, lazy_import=False, reload=False):
