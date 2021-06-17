@@ -15,6 +15,7 @@ from jupytext.contentsmanager import TextFileContentsManager
 from ploomber.sources.notebooksource import (_cleanup_rendered_nb, inject_cell)
 from ploomber.jupyter.dag import JupyterDAGManager
 from ploomber.util import loader
+from ploomber.exceptions import DAGSpecInvalidError
 
 
 class DAGMapping(Mapping):
@@ -102,6 +103,8 @@ class PloomberContentsManager(TextFileContentsManager):
     """
     restart_msg = (' Fix the issue and and restart "jupyter notebook"')
 
+    # TODO: we can cache this depending on the folder where it's called
+    # all files in the same folder share the same dag
     def load_dag(self, starting_dir=None):
         if self.dag is None or self.spec['meta']['jupyter_hot_reload']:
             self.log.info('[Ploomber] Loading dag...')
@@ -118,6 +121,15 @@ class PloomberContentsManager(TextFileContentsManager):
                               and self.spec['meta']['jupyter_hot_reload'])
                 (self.spec, self.dag, self.path) = loader.entry_point_load(
                     starting_dir=starting_dir, reload=hot_reload)
+            # this error means we couldn't locate a parent root (which is
+            # required to determine which spec to use). Since it's expected
+            # that this happens for some folder, we simply emit a warning
+            except DAGSpecInvalidError as e:
+                self.reset_dag()
+                self.log.warning('Skipping DAG initialization since there '
+                                 'isn\'t a project root in the current or '
+                                 'parent directories. Error message: '
+                                 f'{str(e)}')
             except Exception:
                 self.reset_dag()
                 self.log.exception(msg)
@@ -180,7 +192,9 @@ class PloomberContentsManager(TextFileContentsManager):
         """
         self.reset_dag()
 
-        # try to automatically locate the dag spec
+        # try to automatically locate the dag spec - this is needed in case
+        # jupyter_functions_as_notebooks=True since we may need to add a new
+        # folder here
         self.load_dag()
 
         return super(PloomberContentsManager, self).__init__(*args, **kwargs)
