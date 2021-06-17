@@ -5,7 +5,6 @@ import sys
 import datetime
 import os
 import contextlib
-from pprint import pprint
 from pathlib import Path
 from collections.abc import Mapping
 from collections import defaultdict
@@ -107,8 +106,6 @@ class PloomberContentsManager(TextFileContentsManager):
     # all files in the same folder share the same dag
     def load_dag(self, starting_dir=None):
         if self.dag is None or self.spec['meta']['jupyter_hot_reload']:
-            self.log.info('[Ploomber] Loading dag...')
-
             msg = ('[Ploomber] An error occured when trying to initialize '
                    'the pipeline. Cells won\' be injected until your '
                    'pipeline processes correctly. See error details below.')
@@ -153,8 +150,8 @@ class PloomberContentsManager(TextFileContentsManager):
 
                     with chdir(base_path):
                         # this dag object won't be executed, forcing speeds
-                        # rendering up
-                        self.dag.render(force=True)
+                        # up rendering
+                        self.dag.render(force=True, show_progress=False)
 
                     if self.spec['meta']['jupyter_functions_as_notebooks']:
                         self.manager = JupyterDAGManager(self.dag)
@@ -166,11 +163,10 @@ class PloomberContentsManager(TextFileContentsManager):
                              if t.source.loc is not None]
                     self.dag_mapping = DAGMapping(pairs)
 
-                    self.log.info('[Ploomber] Initialized dag from '
-                                  'pipeline.yaml at'
+                    self.log.info('[Ploomber] Using dag defined at'
                                   ': {}'.format(base_path))
-                    self.log.info('[Ploomber] Pipeline mapping: {}'.format(
-                        pprint(self.dag_mapping)))
+                    self.log.info(
+                        f'[Ploomber] Pipeline mapping: {self.dag_mapping}')
                 else:
                     # no pipeline.yaml found...
                     self.log.info('[Ploomber] No pipeline.yaml found, '
@@ -226,13 +222,9 @@ class PloomberContentsManager(TextFileContentsManager):
 
         # if opening a file (ignore file listing), load dag again
         if (model['content'] and model['type'] == 'notebook'):
-            # Look for the pipeline.yaml file from the file we are rendering
-            # and search recursively. This is required to cover the case when
-            # pipeline.yaml is in a subdirectory from the folder where the
-            # user executed "jupyter notebook"
-            # FIXME: we actually don't need to reload the dag again, we just
-            # have to rebuild the mapping to make _model_in_dag work
+            # instantiate the dag using starting at the current folder
             self.load_dag(starting_dir=Path(os.getcwd(), model['path']).parent)
+
             if self._model_in_dag(model):
                 self.log.info('[Ploomber] Injecting cell...')
                 inject_cell(model=model,
