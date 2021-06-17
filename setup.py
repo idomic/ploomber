@@ -85,7 +85,9 @@ TESTING = [
     # needed to run some test pipelines
     'matplotlib',
     'seaborn',
-    'psycopg2',
+    # 2.8 introduced a bug in cursor.copy_from that fails if we pass a
+    # schema.name table name
+    'psycopg2<2.9',
     # requires for some Table tests where we parse the HTML repr
     'lxml',
 ]
